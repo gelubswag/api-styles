@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Tester</title>
+    <style>
+        :root {
+            --background: #1a1a1a;
+            --panel-bg: #212121;
+            --border: #333;
+            --primary: #61dafb;
+            --success: #98c379;
+            --danger: #e06c75;
+            --warning: #e5c07b;
+            --text: #f5f5f5;
+            --text-secondary: #aaa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .panels-container {
+            display: flex;
+            flex: 1;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            border: 1px solid var(--border);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status::before {
+            content: "";
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .status.connected::before {
+            background: var(--success);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: scroll;
+            max-height: 500px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            border: 1px solid var(--border);
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            animation: fadeIn 0.3s ease;
+            word-break: break-word;
+            border-left: 3px solid var(--primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .message-info {
+            border-left-color: var(--primary);
+        }
+
+        .message-success {
+            border-left-color: var(--success);
+        }
+
+        .message-error {
+            border-left-color: var(--danger);
+        }
+
+        .message-warning {
+            border-left-color: var(--warning);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        input {
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            flex: 1;
+        }
+
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .connect-btn {
+            background: var(--success);
+            color: #1a1a1a;
+        }
+
+        .disconnect-btn {
+            background: var(--danger);
+            color: white;
+        }
+
+        .send-btn {
+            background: var(--primary);
+            color: #1a1a1a;
+        }
+
+        .notify-btn {
+            background: var(--warning);
+            color: #1a1a1a;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: #5a7dff;
+        }
+
+        @media (max-width: 768px) {
+            .panels-container {
+                flex-direction: column;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                </svg>
+                WebSocket Admin
+            </h1>
+            <p class="subtitle">Тестирование WebSocket соединений</p>
+        </header>
+
+        <div class="panels-container">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 6V8H18V6H12ZM12 10V12H18V10H12ZM12 14V16H18V14H12ZM6 6V18H10V6H6Z"
+                                fill="var(--primary)" />
+                        </svg>
+                        Обновления книг
+                    </h2>
+                    <div class="status disconnected" id="book-status">ОТКЛЮЧЕНО</div>
+                </div>
+
+                <div class="messages" id="book-messages"></div>
+
+                <div class="controls">
+                    <input type="text" id="book-message" placeholder="Введите сообщение...">
+                    <div class="btn-group">
+                        <button class="send-btn" id="book-send">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor" />
+                            </svg>
+                            Отправить
+                        </button>
+                        <button class="notify-btn" id="book-notify">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"
+                                    fill="currentColor" />
+                            </svg>
+                            Тест
+                        </button>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="connect-btn" id="book-connect">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M7 17v3.67C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V17H7zM16.11 5.99L16 6H8l-.12.01C6.94 6.13 6.01 7.01 6.01 8.09v5.51c0 .8.67 1.4 1.46 1.4H16.5c.8 0 1.48-.6 1.48-1.4V8.09c0-1.08-.93-1.96-1.87-2.1z"
+                                fill="currentColor" />
+                        </svg>
+                        Подключиться
+                    </button>
+                    <button class="disconnect-btn" id="book-disconnect" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 17v-3H7v-4h9V7l5 5-5 5zm-13 5V2h12v6h-2V4H5v16h10v-4h2v6H3z"
+                                fill="currentColor" />
+                        </svg>
+                        Отключиться
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm9 14H6V10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"
+                                fill="var(--warning)" />
+                        </svg>
+                        Уведомления админа
+                    </h2>
+                    <div class="status disconnected" id="admin-status">ОТКЛЮЧЕНО</div>
+                </div>
+
+                <div class="messages" id="admin-messages"></div>
+
+                <div class="controls">
+                    <input type="text" id="admin-message" placeholder="Введите сообщение...">
+                    <div class="btn-group">
+                        <button class="send-btn" id="admin-send">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor" />
+                            </svg>
+                            Отправить
+                        </button>
+                        <button class="notify-btn" id="admin-notify">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"
+                                    fill="currentColor" />
+                            </svg>
+                            Тест
+                        </button>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="connect-btn" id="admin-connect">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M7 17v3.67C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V17H7zM16.11 5.99L16 6H8l-.12.01C6.94 6.13 6.01 7.01 6.01 8.09v5.51c0 .8.67 1.4 1.46 1.4H16.5c.8 0 1.48-.6 1.48-1.4V8.09c0-1.08-.93-1.96-1.87-2.1z"
+                                fill="currentColor" />
+                        </svg>
+                        Подключиться
+                    </button>
+                    <button class="disconnect-btn" id="admin-disconnect" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 17v-3H7v-4h9V7l5 5-5 5zm-13 5V2h12v6h-2V4H5v16h10v-4h2v6H3z"
+                                fill="currentColor" />
+                        </svg>
+                        Отключиться
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bookConnectBtn = document.getElementById('book-connect');
+            const bookDisconnectBtn = document.getElementById('book-disconnect');
+            const bookSendBtn = document.getElementById('book-send');
+            const bookNotifyBtn = document.getElementById('book-notify');
+            const bookMessageInput = document.getElementById('book-message');
+            const bookMessages = document.getElementById('book-messages');
+            const bookStatus = document.getElementById('book-status');
+
+            const adminConnectBtn = document.getElementById('admin-connect');
+            const adminDisconnectBtn = document.getElementById('admin-disconnect');
+            const adminSendBtn = document.getElementById('admin-send');
+            const adminNotifyBtn = document.getElementById('admin-notify');
+            const adminMessageInput = document.getElementById('admin-message');
+            const adminMessages = document.getElementById('admin-messages');
+            const adminStatus = document.getElementById('admin-status');
+
+            const bookUpdatesURL = 'ws://localhost:8000/websocket/book-updates';
+            const adminNotificationsURL = 'ws://localhost:8000/websocket/admin';
+
+            let bookUpdatesWebSocket = null;
+            let adminNotificationsWebSocket = null;
+
+            function formatTime(date = new Date()) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+
+            function addMessage(panel, message, type = 'info', prefix = '') {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message message-${type}`;
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <span class="timestamp">${formatTime()}</span>
+                        <span>${prefix}</span>
+                    </div>
+                    <div class="message-content">${message.replace(/\n/g, '<br>')}</div>
+                `;
+                panel.appendChild(messageElement);
+                panel.scrollTop = panel.scrollHeight;
+            }
+
+            function connectWebSocket(url, panel, statusElement, connectBtn, disconnectBtn) {
+                if (panel === bookMessages && bookUpdatesWebSocket) return;
+                if (panel === adminMessages && adminNotificationsWebSocket) return;
+
+                addMessage(panel, `Попытка подключения к ${url}...`, 'info', '🔄');
+
+                const ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    addMessage(panel, '✅ Подключение установлено!', 'success', '✅');
+                    statusElement.textContent = 'ПОДКЛЮЧЕНО';
+                    statusElement.className = 'status connected';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+
+                    if (panel === bookMessages) {
+                        bookUpdatesWebSocket = ws;
+                    } else {
+                        adminNotificationsWebSocket = ws;
+                    }
+                };
+
+                ws.onmessage = (event) => {
+                    addMessage(panel, event.data, 'success', '📥');
+                };
+
+                ws.onerror = (error) => {
+                    addMessage(panel, `❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`, 'error', '❌');
+                };
+
+                ws.onclose = (event) => {
+                    let message = `🔌 Соединение закрыто`;
+                    if (event.reason) message += `: ${event.reason}`;
+                    addMessage(panel, message, 'warning', '⚠️');
+
+                    statusElement.textContent = 'ОТКЛЮЧЕНО';
+                    statusElement.className = 'status disconnected';
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+
+                    if (panel === bookMessages) {
+                        bookUpdatesWebSocket = null;
+                    } else {
+                        adminNotificationsWebSocket = null;
+                    }
+                };
+
+                return ws;
+            }
+
+            function disconnectWebSocket(ws, panel) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                    addMessage(panel, 'Отключение...', 'warning', '⚠️');
+                }
+            }
+
+            function sendMessage(ws, input, panel) {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    addMessage(panel, 'Не подключено к WebSocket!', 'error', '❌');
+                    return;
+                }
+
+                const message = input.value.trim();
+                if (!message) {
+                    addMessage(panel, 'Пожалуйста, введите сообщение', 'warning', '⚠️');
+                    return;
+                }
+
+                ws.send(message);
+                addMessage(panel, message, 'info', '📤');
+                input.value = '';
+            }
+
+            function sendNotification(ws, panel, channel) {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    addMessage(panel, 'Не подключено к WebSocket!', 'error', '❌');
+                    return;
+                }
+
+                const testMessage = `Тестовое уведомление для ${channel} в ${new Date().toLocaleTimeString()}`;
+                ws.send(testMessage);
+                addMessage(panel, testMessage, 'warning', '🔔');
+            }
+
+            // Book updates channel handlers
+            bookConnectBtn.addEventListener('click', () => {
+                bookUpdatesWebSocket = connectWebSocket(
+                    bookUpdatesURL,
+                    bookMessages,
+                    bookStatus,
+                    bookConnectBtn,
+                    bookDisconnectBtn
+                );
+            });
+
+            bookDisconnectBtn.addEventListener('click', () => {
+                disconnectWebSocket(bookUpdatesWebSocket, bookMessages);
+            });
+
+            bookSendBtn.addEventListener('click', () => {
+                sendMessage(bookUpdatesWebSocket, bookMessageInput, bookMessages);
+            });
+
+            bookNotifyBtn.addEventListener('click', () => {
+                sendNotification(bookUpdatesWebSocket, bookMessages, 'обновления книг');
+            });
+
+            // Admin notifications channel handlers
+            adminConnectBtn.addEventListener('click', () => {
+                adminNotificationsWebSocket = connectWebSocket(
+                    adminNotificationsURL,
+                    adminMessages,
+                    adminStatus,
+                    adminConnectBtn,
+                    adminDisconnectBtn
+                );
+            });
+
+            adminDisconnectBtn.addEventListener('click', () => {
+                disconnectWebSocket(adminNotificationsWebSocket, adminMessages);
+            });
+
+            adminSendBtn.addEventListener('click', () => {
+                sendMessage(adminNotificationsWebSocket, adminMessageInput, adminMessages);
+            });
+
+            adminNotifyBtn.addEventListener('click', () => {
+                sendNotification(adminNotificationsWebSocket, adminMessages, 'админ-уведомления');
+            });
+
+            // Enter key support
+            bookMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage(bookUpdatesWebSocket, bookMessageInput, bookMessages);
+                }
+            });
+
+            adminMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage(adminNotificationsWebSocket, adminMessageInput, adminMessages);
+                }
+            });
+
+            // Initial messages
+            addMessage(bookMessages, 'Добро пожаловать в канал обновлений книг. Нажмите "Подключиться" для начала.', 'info', 'ℹ️');
+            addMessage(adminMessages, 'Добро пожаловать в канал уведомлений админа. Нажмите "Подключиться" для начала.', 'info', 'ℹ️');
+        });
+    </script>
+</body>
+
+</html>

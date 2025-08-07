@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package book;
+
+service BookService {
+    rpc GetBooks (BookFilter) returns (BooksResponse);
+    rpc CreateBook (CreateRequest) returns (Book);
+    rpc UpdateBook (UpdateRequest) returns (Book);
+    rpc DeleteBook (DeleteRequest) returns (DeleteResponse);
+}
+
+message Book {
+    int32 id = 1;
+    string title = 2;
+}
+
+message BookFilter {
+    optional string title = 1;
+    optional int32 id = 2;
+    optional int32 id_lt = 3;
+    optional int32 id_gt = 4;
+}
+
+message BooksResponse {
+    repeated Book books = 1;
+}
+
+message CreateRequest {
+    string title = 1;
+}
+
+message UpdateRequest {
+    int32 id = 1;
+    string title = 2;
+}
+
+message DeleteRequest {
+    int32 id = 1;
+}
+
+message DeleteResponse {
+    bool success = 1;
+}

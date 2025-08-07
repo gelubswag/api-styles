@@ -1,0 +1,8 @@
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <UpdateBook xmlns="book_service">
+      <id>0</id>
+      <title>test</title>
+    </UpdateBook>
+  </soap:Body>
+</soap:Envelope>
