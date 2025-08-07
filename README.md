@@ -22,7 +22,7 @@ cd api-styles
 # 2. Создайте виртуальное окружение
 python -m venv .venv
 source .venv/bin/activate        # Linux / macOS
-.\.venv\Scriptsctivate         # Windows
+.\.venv\Scripts\activate         # Windows
 
 # 3. Установите зависимости
 pip install -r requirements.txt
